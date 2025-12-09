@@ -1,6 +1,4 @@
 <mujoco>
-	<compiler meshdir="/content/GoFa_MuJoCo_sim/gofa/assets" inertiafromgeom="true"/>
-
 	<frame name="robot_offset" pos="-0.125 -0.21 0">
 		<body name="robot">
 			<body name="link0">
