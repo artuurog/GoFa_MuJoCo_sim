@@ -1,5 +1,6 @@
 <mujoco model="pick and place scene">
 
+	<compiler meshdir="assets" inertiafromgeom="true"/>
 
 	<option gravity="0 0 -9.81" />
 
