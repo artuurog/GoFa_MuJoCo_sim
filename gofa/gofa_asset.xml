@@ -9,9 +9,9 @@
 	<mesh name="link4" file="CRB15000_5kg-950_OmniCore_rev00_LINK4_CAD.STL" />
 	<mesh name="link5" file="CRB15000_5kg-950_OmniCore_rev00_LINK5_CAD.STL" />
 	<mesh name="link6" file="CRB15000_5kg-950_OmniCore_rev00_LINK6_CAD.STL" />
-	<mesh name="gripper_body" file="gripper_body.stl" />
-	<mesh name="finger1" file="finger1.stl" />
-	<mesh name="finger2" file="finger2.stl" />
+	<mesh name="gripper_body" file="gripper_body.STL" />
+	<mesh name="finger1" file="finger1.STL" />
+	<mesh name="finger2" file="finger2.STL" />
 
 	<!-- Add checkerboard texture and material -->
 	<texture name="checker_tex" type="2d" builtin="checker" width="512" height="512" />
