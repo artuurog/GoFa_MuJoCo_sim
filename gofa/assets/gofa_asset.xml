@@ -2,7 +2,7 @@
 <compiler meshdir="mesh" inertiafromgeom="true"/>
 
 <asset>
-	<mesh name="link0" file="CRB15000_5kg-950_OmniCore_rev00_LINK0_CAD.STL" />
+	<mesh name="link0" file="mesh/CRB15000_5kg-950_OmniCore_rev00_LINK0_CAD.STL" />
 	<mesh name="link1" file="CRB15000_5kg-950_OmniCore_rev00_LINK1_CAD.STL" />
 	<mesh name="link2" file="CRB15000_5kg-950_OmniCore_rev00_LINK2_CAD.stl" />
 	<mesh name="link3" file="CRB15000_5kg-950_OmniCore_rev00_LINK3_CAD.stl" />
