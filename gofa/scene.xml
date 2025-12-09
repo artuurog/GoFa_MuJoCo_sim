@@ -22,11 +22,11 @@
 			reflectance="0.2"/>
 	</asset>
 
-	<include file ="assets/gofa_asset.xml"/>
+	<include file ="../assets/gofa_asset.xml"/>
 	
 	<worldbody>
 		<body pos="0 0 0.6">
-			<include file="assets/gofa_body.xml"/>
+			<include file="../assets/gofa_body.xml"/>
 		</body>
 	</worldbody>
 	
