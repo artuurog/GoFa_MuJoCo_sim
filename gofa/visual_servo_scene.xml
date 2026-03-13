@@ -15,32 +15,26 @@
 	</visual>
 
 	<asset>
-		<texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
-		<texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300"/>
+		<texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="10" height="10"/>
+		<texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="500" height="500"/>
 		<material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
 	</asset>
 
-	<include file="robot_no_gripper.xml"/>
+	<include file="gofa_asset.xml"/>
 	
-	<!--<worldbody>
-		<body pos="0 0 0.6">
+	<worldbody>
+		<body pos="0 0 0">
 			<include file="gofa_body.xml"/>
 		</body>
-	</worldbody>-->
+	</worldbody>
 	
 	<worldbody>
 		<light pos="0 0 2" dir="0 0 -1" directional="true"/>
 		
 		<geom name="floor" size="0 0 0.05" type="plane" material="groundplane" contype="1" conaffinity="1"/>
 
-		<!-- Table -->
-		
-		<body name="red_target" pos="-0.4 0 0">
-			<inertial pos="0 0 0" mass="0.01" diaginertia="0 0 0"/>
-			<joint type="free"/>
-			<!--<geom type="box" size="0.01 0.03 0.01" rgba="0.8 0.3 0.3 1" friction="1 1 1"/>-->
-			<geom type="sphere" size="0.01" rgba="0.9 0.3 0.3 1"/>
-		</body>
+		<geom name ="red_target" type="sphere" size="0.01" rgba="1 0 0 1" pos="-0.4 0 0.01"/>
+
 
 		<!-- Camera -->
 		<camera
