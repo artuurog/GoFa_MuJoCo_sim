@@ -20,13 +20,13 @@
 		<material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
 	</asset>
 
-	<include file="gofa_asset.xml"/>
+	<include file="robot_no_gripper.xml"/>
 	
-	<worldbody>
+	<!--<worldbody>
 		<body pos="0 0 0.6">
 			<include file="gofa_body.xml"/>
 		</body>
-	</worldbody>
+	</worldbody>-->
 	
 	<worldbody>
 		<light pos="0 0 2" dir="0 0 -1" directional="true"/>
@@ -34,45 +34,12 @@
 		<geom name="floor" size="0 0 0.05" type="plane" material="groundplane" contype="1" conaffinity="1"/>
 
 		<!-- Table -->
-		<body name="table" pos="-0.6 0 0.3">
-			<inertial pos="0 0 0" mass="1" diaginertia="0 0 0"/>
-			<geom type="box" size="0.75 0.4 0.3" rgba="0.2 0.2 0.2 1" friction="1 1 1"/>
-		</body>
 		
-		<body name="red_block" pos="-0.4 0 0.61">
+		<body name="red_target" pos="-0.4 0 0">
 			<inertial pos="0 0 0" mass="0.01" diaginertia="0 0 0"/>
 			<joint type="free"/>
-			<geom type="box" size="0.01 0.03 0.01" rgba="0.8 0.3 0.3 1" friction="1 1 1"/>
-		</body>
-
-		<body name="red_block2" pos="-0.42 0.1 0.61">
-			<inertial pos="0 0 0" mass="0.01" diaginertia="0.0 0.0 0.0"/>
-			<joint type="free"/>
-			<geom type="box" size="0.01 0.03 0.01" rgba="0.8 0.3 0.3 1" friction="1 1 1"/>
-		</body>
-		
-		<body name="green_block" pos="-0.3 0 0.61">
-			<inertial pos="0 0 0" mass="0.01" diaginertia="0.0 0.0 0.0"/>
-			<joint type="free"/>
-			<geom type="box" size="0.01 0.03 0.01" rgba="0.3 0.8 0.3 1" friction="1 1 1"/>
-		</body>
-
-		<body name="green_block2" pos="-0.3 0.1 0.61">
-			<inertial pos="0 0 0" mass="0.01" diaginertia="0.0 0.0 0.0"/>
-			<joint type="free"/>
-			<geom type="box" size="0.01 0.03 0.01" rgba="0.3 0.8 0.3 1" friction="1 1 1"/>
-		</body>
-		
-		<body name="blue_block" pos="-0.35 0.13 0.61">
-			<inertial pos="0 0 0" mass="0.01" diaginertia="0.0 0.0 0.0"/>
-			<joint type="free"/>
-			<geom type="box" size="0.01 0.03 0.01" rgba="0.3 0.3 0.8 1" friction="1 1 1"/>
-		</body>
-
-		<!-- Target region-->
-		<body name="container" pos="-0.60 0.3 0.8">
-			<inertial pos="0 0 0" mass="1" diaginertia="1.0 1.0 1.0"/>
-			<geom type="cylinder" size="0.1 0.01" rgba="0.5 0.8 0.5 1" friction="1 1 1"/>
+			<!--<geom type="box" size="0.01 0.03 0.01" rgba="0.8 0.3 0.3 1" friction="1 1 1"/>-->
+			<geom type="sphere" size="0.01" rgba="0.9 0.3 0.3 1"/>
 		</body>
 
 		<!-- Camera -->
