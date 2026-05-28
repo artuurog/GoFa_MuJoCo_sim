@@ -10,3 +10,5 @@ MuJoCo simulation environment with an ABB GoFa robot for tabletop manipulation t
 `scene.xml` simulates a pick and place environment without gravity compensation
 
 `pick_place_scene.xml` simulates the same pick and place environment, but also compensates gravity
+
+`gofa_contact_force.xml` simulates a peg-in-hole task in which end-effector contact forces are also measured
