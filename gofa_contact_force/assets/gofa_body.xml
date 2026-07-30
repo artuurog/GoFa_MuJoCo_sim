@@ -37,13 +37,13 @@
 											<geom type="mesh" mesh="gripper_body" rgba="0.1 0.1 1 1" mass="0.4" contype="1" conaffinity="1"/>
 											<site  name="ee_site" pos="0.86 0.208 0.899" size="0.01" rgba="0 1 0 1"/>
 											<body>
-												<joint name="joint_finger1" type="slide" axis="0 1 0" range="-0.006 0.006" limited="true" pos="0.125 0.21 0"/>
+												<joint name="joint_finger1" type="slide" axis="0 -1 0" range="0 0.012"  margin="0" limited="true" pos="0.125 0.21 0"/>
 												<geom type="mesh" mesh="finger1" rgba="1 1 1 1" solref="0.002 1" solimp="0.99 0.99 0.001" friction="2 1 1" contype="1" conaffinity="1"/>
 											</body>
 
 
 											<body>
-												<joint name="joint_finger2" type="slide" axis="0 1 0" range="-0.006 0.006" limited="true" pos="0.125 0.21 0"/>
+												<joint name="joint_finger2" type="slide" axis="0 1 0" range="0 0.012"  margin="0" limited="true" pos="0.125 0.21 0"/>
 												<geom type="mesh" mesh="finger2" rgba="1 1 1 1" solref="0.002 1" solimp="0.99 0.99 0.001" friction="2 1 1" contype="1" conaffinity="1"/>
 											</body>
 

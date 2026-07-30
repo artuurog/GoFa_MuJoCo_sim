@@ -16,9 +16,9 @@
 	<!--
     MuJoCo friction mixing rule: effective = sqrt(f1 * f2)
     Values below are "self-friction" so mixed pairs come out realistic:
-      metal–plastic sliding  : sqrt(0.09 * 0.49) ≈ 0.21  (real ~0.15-0.25 ✓)
-      metal–wood   sliding   : sqrt(0.09 * 0.64) ≈ 0.24  (real ~0.2-0.3  ✓)
-      plastic–wood sliding   : sqrt(0.49 * 0.64) ≈ 0.56  (real ~0.4-0.6  ✓)
+      metal–plastic sliding  : sqrt(0.09 * 0.49) ≈ 0.21  (real ~0.15-0.25)
+      metal–wood   sliding   : sqrt(0.09 * 0.64) ≈ 0.24  (real ~0.2-0.3 )
+      plastic–wood sliding   : sqrt(0.49 * 0.64) ≈ 0.56  (real ~0.4-0.6)
 
     condim=6 : enables torsional + rolling friction (pyramid approximation)
     solref / solimp identical across classes — stiffness is a contact property,
@@ -69,7 +69,6 @@
 		</default>
 	</default>
 
-	<!--<statistic center="0.3 0 0.4" extent="1"/>-->
 	<statistic meansize=".05"/>
 
 	<visual>
@@ -93,6 +92,7 @@
 		<body pos="0 0 0.6">
 			<include file="assets/gofa_body.xml"/>
 		</body>
+
 	</worldbody>
 
 	<worldbody>
@@ -109,14 +109,6 @@
 		</body>
 
 		<!-- ── Cylinder (steel pin, m=10g, r=8mm, h=60mm) ───────────── -->
-		<!--
-      Corrected inertia for solid cylinder:
-        Ixx = Iyy = m*(3r² + h²)/12
-                  = 0.01*(3×64e-6 + 3.6e-3)/12  ≈ 3.16e-6 kg·m²
-        Izz        = m*r²/2
-                  = 0.01×64e-6/2               ≈ 3.20e-7 kg·m²
-      Previous value of 0.1 kg·m² was ~30 000× too large.
-    -->
 		<body name="cylinder_body" pos="0.8 0 1.5" euler="0 90 0" gravcomp="0">
 			<inertial pos="0 0 0" mass="0.05"
 			  diaginertia="1 1 1"/>
@@ -127,16 +119,6 @@
 		</body>
 
 		<!-- ── Insertion box (ABS plastic, box-with-hole) ───────────── -->
-		<!--
-      Hole radius = 0.010 m  (2 mm clearance around r=0.008 cylinder)
-      Box outer half-extents: 0.04 × 0.04 × 0.020
-      Corrected inertia for the composite box (approximated as solid box
-      minus the small cylinder mass — negligible, treated as full box):
-        m = 0.5 kg, half-extents a=0.04, b=0.04, c=0.02
-        Ixx = m*(b²+c²)/3 = 0.5*(1.6e-3+4e-4)/3 ≈ 3.33e-4
-        Iyy = m*(a²+c²)/3 = 0.5*(1.6e-3+4e-4)/3 ≈ 3.33e-4
-        Izz = m*(a²+b²)/3 = 0.5*(1.6e-3+1.6e-3)/3 ≈ 5.33e-4
-    -->
 		<body name="insertion_box" pos="-0.4 0.2 0.62">
 			<inertial pos="0 0 0" mass="0.5"
 			  diaginertia="3.33e-4 3.33e-4 5.33e-4"/>
@@ -199,8 +181,12 @@
 
 	<!-- ── Sensors ──────────────────────────────────────────────────── -->
 	<sensor>
-		<force  name="force_sensor"  site="ee_site"/>
-		<torque name="torque_sensor" site="ee_site"/>
+		<jointactuatorfrc name="torque_sensor_1" joint="joint1"/>
+		<jointactuatorfrc name="torque_sensor_2" joint="joint2"/>
+		<jointactuatorfrc name="torque_sensor_3" joint="joint3"/>
+		<jointactuatorfrc name="torque_sensor_4" joint="joint4"/>
+		<jointactuatorfrc name="torque_sensor_5" joint="joint5"/>
+		<jointactuatorfrc name="torque_sensor_6" joint="joint6"/>
 	</sensor>
 
 	<!-- ── Constrain cylinder to robot EE ───────────────────────────── -->
