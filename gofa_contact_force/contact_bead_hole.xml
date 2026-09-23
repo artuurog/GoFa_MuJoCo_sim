@@ -1,0 +1,204 @@
+<mujoco model="pick and place scene">
+
+	<!-- ── Simulation options ───────────────────────────────────────── -->
+	<option
+	  gravity    = "0 0 -9.81"
+	  solver     = "Newton"
+	  timestep   = "0.0005"
+	  iterations = "200"
+	  tolerance  = "1e-10"
+	  noslip_iterations = "10"
+	  noslip_tolerance  = "1e-10"
+	  integrator = "implicitfast"
+  />
+
+	<!-- ── Material-class defaults ──────────────────────────────────── -->
+	<!--
+    MuJoCo friction mixing rule: effective = sqrt(f1 * f2)
+    Values below are "self-friction" so mixed pairs come out realistic:
+      metal–plastic sliding  : sqrt(0.09 * 0.49) ≈ 0.21  (real ~0.15-0.25)
+      metal–wood   sliding   : sqrt(0.09 * 0.64) ≈ 0.24  (real ~0.2-0.3 )
+      plastic–wood sliding   : sqrt(0.49 * 0.64) ≈ 0.56  (real ~0.4-0.6)
+
+    condim=6 : enables torsional + rolling friction (pyramid approximation)
+    solref / solimp identical across classes — stiffness is a contact property,
+    not a material property in this model.
+  -->
+	<default>
+		<!-- Shared contact solver params for all geoms -->
+		<geom
+		  solref  = "0.001 1"
+		  solimp  = "0.95 0.99 0.001 0.5 2"
+		  condim  = "6"
+    />
+
+		<!-- Steel / aluminium pin -->
+		<default class="metal">
+			<geom
+			  friction = "0.30 0.005 0.0001"
+			  contype  = "1"
+			  conaffinity = "1"
+      />
+		</default>
+
+		<!-- ABS / nylon insertion box walls -->
+		<default class="plastic">
+			<geom
+			  friction = "0.70 0.010 0.001"
+			  contype  = "1"
+			  conaffinity = "1"
+      />
+		</default>
+
+		<!-- Wooden / MDF table surface -->
+		<default class="wood">
+			<geom
+			  friction = "0.80 0.010 0.001"
+			  contype  = "1"
+			  conaffinity = "1"
+      />
+		</default>
+
+		<!-- Rubber floor mat -->
+		<default class="rubber">
+			<geom
+			  friction = "1.60 0.020 0.005"
+			  contype  = "1"
+			  conaffinity = "1"
+      />
+		</default>
+	</default>
+
+	<statistic meansize=".05"/>
+
+	<visual>
+		<headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+		<rgba haze="0.15 0.25 0.35 1"/>
+	</visual>
+
+	<asset>
+		<texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0"
+		  width="512" height="3072"/>
+		<texture type="2d" name="groundplane" builtin="checker" mark="edge"
+		  rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8"
+		  width="300" height="300"/>
+		<material name="groundplane" texture="groundplane" texuniform="true"
+		  texrepeat="5 5" reflectance="0.2"/>
+	</asset>
+
+	<include file="assets/gofa_asset.xml"/>
+
+	<worldbody>
+		<body pos="0 0 0.6">
+			<include file="assets/gofa_body.xml"/>
+		</body>
+
+	</worldbody>
+
+	<worldbody>
+		<light pos="0 0 2" dir="0 0 -1" directional="true"/>
+
+		<geom name="floor" size="0 0 0.05" type="plane"
+		  material="groundplane" class="rubber"/>
+
+		<!-- ── Table ─────────────────────────────────── -->
+		<body name="table" pos="-0.6 0 0.3">
+			<inertial pos="0 0 0" mass="20" diaginertia="2.0 4.0 4.0"/>
+			<geom type="box" size="0.75 0.4 0.3" rgba="0.2 0.2 0.2 1"
+			  class="wood"/>
+		</body>
+
+
+		<!-- ── Insertion box (ABS plastic, box-with-hole) ───────────── -->
+		<body name="insertion_box" pos="-0.4 0.2 0.62">
+			<inertial pos="0 0 0" mass="0.5"
+			  diaginertia="3.33e-4 3.33e-4 5.33e-4"/>
+
+			<!-- Visual-only cylinder shows the hole (no collision) -->
+			<geom name="hole_visual" type="cylinder" size="0.010 0.021"
+			  rgba="0.1 0.1 0.1 1" contype="0" conaffinity="0"/>
+
+			<!-- North wall (+Y) -->
+			<geom name="box_wall_n" type="box" size="0.040 0.015 0.020"
+			  pos="0  0.025 0" rgba="0.85 0.75 0.3 1" class="plastic"/>
+
+			<!-- South wall (-Y) -->
+			<geom name="box_wall_s" type="box" size="0.040 0.015 0.020"
+			  pos="0 -0.025 0" rgba="0.85 0.75 0.3 1" class="plastic"/>
+
+			<!-- East wall (+X) -->
+			<geom name="box_wall_e" type="box" size="0.015 0.010 0.020"
+			  pos=" 0.025 0 0" rgba="0.85 0.75 0.3 1" class="plastic"/>
+
+			<!-- West wall (-X) -->
+			<geom name="box_wall_w" type="box" size="0.015 0.010 0.020"
+			  pos="-0.025 0 0" rgba="0.85 0.75 0.3 1" class="plastic"/>
+
+			<!-- Bottom floor (cylinder lands here on full insertion) -->
+			<geom name="box_floor" type="box" size="0.040 0.040 0.003"
+			  pos="0 0 -0.023" rgba="0.85 0.75 0.3 1" class="plastic"/>
+		</body>
+
+		<!-- ── Bead: small hollow cylinder (outer Ø20mm, inner hole Ø10mm, h20mm) ──
+		     MuJoCo has no native annulus primitive, so the tube wall is
+		     approximated as a ring of 24 thin box segments (same trick used
+		     for insertion_box's square hole above). Hole visual is a
+		     collision-free cylinder marking the through-hole. -->
+		<body name="bead" pos="-0.3 0.2 0.62">
+			<freejoint/>
+			<inertial pos="0 0 0" mass="0.03" diaginertia="1.94e-6 1.94e-6 1.88e-6"/>
+
+			<!-- Visual-only cylinder shows the through-hole (no collision) -->
+			<geom name="bead_hole_visual" type="cylinder" size="0.005 0.010"
+			  rgba="0.1 0.1 0.1 1" contype="0" conaffinity="0"/>
+
+			<!-- Tube wall: ring of 24 box segments at mean radius 7.5mm -->
+			<geom name="bead_seg_00" type="box" size="0.0025 0.0011 0.010" pos=" 0.0075  0.0000 0" euler="0 0 0"   class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_01" type="box" size="0.0025 0.0011 0.010" pos=" 0.0072  0.0019 0" euler="0 0 15"  class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_02" type="box" size="0.0025 0.0011 0.010" pos=" 0.0065  0.0038 0" euler="0 0 30"  class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_03" type="box" size="0.0025 0.0011 0.010" pos=" 0.0053  0.0053 0" euler="0 0 45"  class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_04" type="box" size="0.0025 0.0011 0.010" pos=" 0.0038  0.0065 0" euler="0 0 60"  class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_05" type="box" size="0.0025 0.0011 0.010" pos=" 0.0019  0.0072 0" euler="0 0 75"  class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_06" type="box" size="0.0025 0.0011 0.010" pos=" 0.0000  0.0075 0" euler="0 0 90"  class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_07" type="box" size="0.0025 0.0011 0.010" pos="-0.0019  0.0072 0" euler="0 0 105" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_08" type="box" size="0.0025 0.0011 0.010" pos="-0.0038  0.0065 0" euler="0 0 120" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_09" type="box" size="0.0025 0.0011 0.010" pos="-0.0053  0.0053 0" euler="0 0 135" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_10" type="box" size="0.0025 0.0011 0.010" pos="-0.0065  0.0038 0" euler="0 0 150" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_11" type="box" size="0.0025 0.0011 0.010" pos="-0.0072  0.0019 0" euler="0 0 165" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_12" type="box" size="0.0025 0.0011 0.010" pos="-0.0075  0.0000 0" euler="0 0 180" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_13" type="box" size="0.0025 0.0011 0.010" pos="-0.0072 -0.0019 0" euler="0 0 195" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_14" type="box" size="0.0025 0.0011 0.010" pos="-0.0065 -0.0038 0" euler="0 0 210" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_15" type="box" size="0.0025 0.0011 0.010" pos="-0.0053 -0.0053 0" euler="0 0 225" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_16" type="box" size="0.0025 0.0011 0.010" pos="-0.0038 -0.0065 0" euler="0 0 240" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_17" type="box" size="0.0025 0.0011 0.010" pos="-0.0019 -0.0072 0" euler="0 0 255" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_18" type="box" size="0.0025 0.0011 0.010" pos=" 0.0000 -0.0075 0" euler="0 0 270" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_19" type="box" size="0.0025 0.0011 0.010" pos=" 0.0019 -0.0072 0" euler="0 0 285" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_20" type="box" size="0.0025 0.0011 0.010" pos=" 0.0038 -0.0065 0" euler="0 0 300" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_21" type="box" size="0.0025 0.0011 0.010" pos=" 0.0053 -0.0053 0" euler="0 0 315" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_22" type="box" size="0.0025 0.0011 0.010" pos=" 0.0065 -0.0038 0" euler="0 0 330" class="metal" rgba="0.6 0.6 0.65 1"/>
+			<geom name="bead_seg_23" type="box" size="0.0025 0.0011 0.010" pos=" 0.0072 -0.0019 0" euler="0 0 345" class="metal" rgba="0.6 0.6 0.65 1"/>
+		</body>
+
+		<!-- External camera -->
+		<camera
+		  name       = "external_camera"
+		  pos        = "-0.5 0 1.3"
+		  euler      = "0 -15 -90"
+		  mode       = "fixed"
+		  resolution = "1280 720"
+		  fovy       = "69"
+    />
+	</worldbody>
+
+	<!-- ── Sensors ──────────────────────────────────────────────────── -->
+	<sensor>
+		<jointactuatorfrc name="torque_sensor_1" joint="joint1"/>
+		<jointactuatorfrc name="torque_sensor_2" joint="joint2"/>
+		<jointactuatorfrc name="torque_sensor_3" joint="joint3"/>
+		<jointactuatorfrc name="torque_sensor_4" joint="joint4"/>
+		<jointactuatorfrc name="torque_sensor_5" joint="joint5"/>
+		<jointactuatorfrc name="torque_sensor_6" joint="joint6"/>
+	</sensor>
+
+
+</mujoco>
