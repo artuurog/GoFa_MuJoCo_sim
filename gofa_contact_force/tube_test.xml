@@ -1,0 +1,58 @@
+<mujoco model="tube_test">
+
+  <extension>
+    <plugin plugin="mujoco.sdf.tube">
+      <instance name="tube_sdf">
+        <config key="inner_radius" value="0.02"/>
+        <config key="outer_radius" value="0.06"/>
+        <config key="half_height" value="0.10"/>
+      </instance>
+    </plugin>
+  </extension>
+
+  <asset>
+    <mesh name="tube_mesh">
+      <plugin instance="tube_sdf"/>
+    </mesh>
+  </asset>
+
+  <option sdf_iterations="10" sdf_initpoints="40"/>
+
+  <statistic center="0 0 0" extent="0.25"/>
+
+  <visual>
+    <headlight ambient="0.35 0.35 0.35"
+               diffuse="0.8 0.8 0.8"
+               specular="0.2 0.2 0.2"/>
+  </visual>
+
+  <worldbody>
+
+    <light name="key"
+           pos="0.30 -0.30 0.40"
+           dir="-0.30 0.30 -0.40"
+           directional="false"/>
+
+    <light name="fill"
+           pos="-0.25 0.20 0.25"
+           dir="0.25 -0.20 -0.25"
+           directional="false"/>
+
+    <body name="tube_body" pos="0 0 0">
+      <geom name="tube_geom"
+            type="sdf"
+            mesh="tube_mesh"
+            rgba="0.20 0.55 0.90 1">
+        <plugin instance="tube_sdf"/>
+      </geom>
+    </body>
+
+    <geom name="floor"
+          type="plane"
+          pos="0 0 -0.105"
+          size="0.30 0.30 0.01"
+          rgba="0.75 0.75 0.75 1"/>
+
+  </worldbody>
+
+</mujoco>
