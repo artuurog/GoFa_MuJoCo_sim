@@ -1,0 +1,207 @@
+<mujoco model="pick and place scene">
+
+	<!-- ── SDF tube plugin ──────────────────────────────────────────── -->
+	<extension>
+		<plugin plugin="mujoco.sdf.tube">
+			<instance name="tube_sdf">
+				<config key="inner_radius" value="0.005"/>
+				<config key="outer_radius" value="0.010"/>
+				<config key="half_height" value="0.005"/>
+			</instance>
+		</plugin>
+	</extension>
+
+	<!-- ── Simulation options ───────────────────────────────────────── -->
+	<option
+	  gravity    = "0 0 -9.81"
+	  solver     = "Newton"
+	  timestep   = "0.0005"
+	  iterations = "200"
+	  tolerance  = "1e-10"
+	  noslip_iterations = "10"
+	  noslip_tolerance  = "1e-10"
+	  integrator = "implicitfast"
+	  sdf_iterations = "10"
+	  sdf_initpoints = "40"
+  />
+
+	<!-- ── Material-class defaults ──────────────────────────────────── -->
+	<!--
+    MuJoCo friction mixing rule: effective = sqrt(f1 * f2)
+    Values below are "self-friction" so mixed pairs come out realistic:
+      metal–plastic sliding  : sqrt(0.09 * 0.49) ≈ 0.21  (real ~0.15-0.25)
+      metal–wood   sliding   : sqrt(0.09 * 0.64) ≈ 0.24  (real ~0.2-0.3 )
+      plastic–wood sliding   : sqrt(0.49 * 0.64) ≈ 0.56  (real ~0.4-0.6)
+
+    condim=6 : enables torsional + rolling friction (pyramid approximation)
+    solref / solimp identical across classes — stiffness is a contact property,
+    not a material property in this model.
+  -->
+	<default>
+		<!-- Shared contact solver params for all geoms -->
+		<geom
+		  solref  = "0.001 1"
+		  solimp  = "0.95 0.99 0.001 0.5 2"
+		  condim  = "6"
+    />
+
+		<!-- Steel / aluminium pin -->
+		<default class="metal">
+			<geom
+			  friction = "0.30 0.005 0.0001"
+			  contype  = "1"
+			  conaffinity = "1"
+      />
+		</default>
+
+		<!-- ABS / nylon insertion box walls -->
+		<default class="plastic">
+			<geom
+			  friction = "0.70 0.010 0.001"
+			  contype  = "1"
+			  conaffinity = "1"
+      />
+		</default>
+
+		<!-- Wooden / MDF table surface -->
+		<default class="wood">
+			<geom
+			  friction = "0.80 0.010 0.001"
+			  contype  = "1"
+			  conaffinity = "1"
+      />
+		</default>
+
+		<!-- Rubber floor mat -->
+		<default class="rubber">
+			<geom
+			  friction = "1.60 0.020 0.005"
+			  contype  = "1"
+			  conaffinity = "1"
+      />
+		</default>
+	</default>
+
+	<statistic meansize=".05"/>
+
+	<visual>
+		<headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+		<rgba haze="0.15 0.25 0.35 1"/>
+	</visual>
+
+	<asset>
+		<texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0"
+		  width="512" height="3072"/>
+		<texture type="2d" name="groundplane" builtin="checker" mark="edge"
+		  rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8"
+		  width="300" height="300"/>
+		<material name="groundplane" texture="groundplane" texuniform="true"
+		  texrepeat="5 5" reflectance="0.2"/>
+		<mesh name="tube_mesh">
+			<plugin instance="tube_sdf"/>
+		</mesh>
+	</asset>
+
+	<include file="assets/gofa_asset.xml"/>
+
+	<worldbody>
+		<body pos="0 0 0.6">
+			<include file="assets/gofa_body.xml"/>
+		</body>
+
+	</worldbody>
+
+	<worldbody>
+		<light pos="0 0 2" dir="0 0 -1" directional="true"/>
+
+		<geom name="floor" size="0 0 0.05" type="plane"
+		  material="groundplane" class="rubber"/>
+
+		<!-- ── Table ─────────────────────────────────── -->
+		<body name="table" pos="-0.6 0 0.3">
+			<inertial pos="0 0 0" mass="20" diaginertia="2.0 4.0 4.0"/>
+			<geom type="box" size="0.75 0.4 0.3" rgba="0.2 0.2 0.2 1"
+			  class="wood"/>
+		</body>
+
+		<!-- ── Hollow SDF tube, hinged to the robot EE (equality constraints) ── -->
+		<body name="tube_body" pos="0.8 0 1.5" euler="0 90 0" gravcomp="0">
+			<inertial pos="0 0 0" mass="0.05"
+			  diaginertia="1 1 1"/>
+			<freejoint name="tube_free"/>
+			<site name="tube_site" pos="0 0 0" euler="0 90 0" rgba="0 0 0 0"/>
+			<!-- 5 cm along tube_site's z axis (= tube body x); defines the hinge axis -->
+			<site name="tube_site_axis" pos="0.05 0 0" size="0.005" rgba="0 0 0 0"/>
+			<geom name="tube_geom" type="sdf" mesh="tube_mesh"
+			  rgba="0.20 0.55 0.90 1" class="metal">
+				<plugin instance="tube_sdf"/>
+			</geom>
+		</body>
+
+		<!-- ── Vertical stick welded to a base box (static, on table top z=0.6) ── -->
+		<body name="stick_base" pos="-0.4 0.2 0.61">
+			<!-- Base box -->
+			<geom name="base_box" type="box" size="0.040 0.040 0.010"
+			  pos="0 0 0" rgba="0.85 0.75 0.3 1" class="plastic"/>
+
+			<!-- Vertical cylindrical stick, rigidly fixed to the base -->
+			<geom name="stick" type="cylinder" size="0.005 0.040"
+			  pos="0 0 0.050" rgba="0.85 0.75 0.3 1" class="plastic"/>
+		</body>
+
+		<!-- External camera -->
+		<camera
+		  name       = "external_camera"
+		  pos        = "-0.5 0 1.3"
+		  euler      = "0 -15 -90"
+		  mode       = "fixed"
+		  resolution = "1280 720"
+		  fovy       = "69"
+    />
+	</worldbody>
+
+	<!-- ── Explicit contact pair: tube ↔ stick and base ────── -->
+	<!--
+    Override with tighter solref for this critical interaction:
+    timeconst=0.0005 s = 1× dt → maximally stiff contact resolution.
+    Tighter solimp upper bound (0.999) prevents any visible penetration
+    during the precision insertion manoeuvre.
+  -->
+	<contact>
+		<pair geom1="tube_geom" geom2="stick"
+		  solref="0.0005 1" solimp="0.97 0.999 0.0005 0.5 2" condim="6"/>
+		<pair geom1="tube_geom" geom2="base_box"
+		  solref="0.0005 1" solimp="0.97 0.999 0.0005 0.5 2" condim="6"/>
+	</contact>
+
+	<!-- ── Sensors ──────────────────────────────────────────────────── -->
+	<sensor>
+		<jointactuatorfrc name="torque_sensor_1" joint="joint1"/>
+		<jointactuatorfrc name="torque_sensor_2" joint="joint2"/>
+		<jointactuatorfrc name="torque_sensor_3" joint="joint3"/>
+		<jointactuatorfrc name="torque_sensor_4" joint="joint4"/>
+		<jointactuatorfrc name="torque_sensor_5" joint="joint5"/>
+		<jointactuatorfrc name="torque_sensor_6" joint="joint6"/>
+	</sensor>
+
+	<!-- ── Revolute joint between tube and robot EE ─────────────────── -->
+	<!-- Two coincident point constraints 5 cm apart along the z axis of ee_site
+	     leave one free rotation: a hinge about that axis. -->
+	<equality>
+		<connect
+			name="tube_to_ee_a"
+			site1="ee_site"
+			site2="tube_site"
+			solref   = "0.0002 1"
+			solimp   = "0.999 0.9999 0.0001 0.5 2"
+			/>
+		<connect
+			name="tube_to_ee_b"
+			site1="ee_site_axis"
+			site2="tube_site_axis"
+			solref   = "0.0002 1"
+			solimp   = "0.999 0.9999 0.0001 0.5 2"
+			/>
+	</equality>
+
+</mujoco>
