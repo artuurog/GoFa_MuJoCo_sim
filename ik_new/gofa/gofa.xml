@@ -1,7 +1,7 @@
 <mujoco model="abb-gofa">
 
 	
-	<compiler meshdir="mesh" inertiafromgeom="true"/>
+	<compiler meshdir="assets/mesh" inertiafromgeom="true"/>
 
 	<asset>
 		<mesh name="link0" file="CRB15000_5kg-950_OmniCore_rev00_LINK0_CAD.STL" />

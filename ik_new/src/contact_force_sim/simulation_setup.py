@@ -110,7 +110,7 @@ LOG_EVERY_N_STEPS = 1
 # ============================================================================
 # Model paths
 # ============================================================================
-MODEL_DIR = Path("Mujoco_models")
+MODEL_DIR = Path("ik_new\gofa")
 IK_MODEL_PATH = MODEL_DIR / "robot_no_gripper.xml"
 VIS_MODEL_PATH = MODEL_DIR / "contact_forces_insertion.xml"
 
