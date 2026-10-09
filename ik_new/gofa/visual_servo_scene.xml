@@ -1,0 +1,51 @@
+<mujoco model="pick and place scene">
+
+	<compiler meshdir="assets" inertiafromgeom="true"/>
+
+	<option gravity="0 0 -9.81" />
+
+	<!--<statistic center="0.3 0 0.4" extent="1"/>-->
+	<statistic meansize=".05"/>
+
+
+	<visual>
+		<headlight diffuse="0.6 0.6 0.6"  ambient="0.3 0.3 0.3" specular="0 0 0"/>
+		<rgba haze="0.15 0.25 0.35 1"/>
+		<!-- <global azimuth="120" elevation="-20"/> -->
+	</visual>
+
+	<asset>
+		<texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="10" height="10"/>
+		<texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="500" height="500"/>
+		<material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+	</asset>
+
+	<include file="gofa_asset.xml"/>
+	
+	<worldbody>
+		<body pos="0 0 0">
+			<include file="gofa_body.xml"/>
+		</body>
+	</worldbody>
+	
+	<worldbody>
+		<light pos="0 0 2" dir="0 0 -1" directional="true"/>
+		
+		<geom name="floor" size="0 0 0.05" type="plane" material="groundplane" contype="1" conaffinity="1"/>
+
+		<geom name ="red_target" type="sphere" size="0.01" rgba="1 0 0 1" pos="-0.4 0 0.01"/>
+
+
+		<!-- Camera -->
+		<camera
+		name="external_camera"
+		pos="-0.5 0 1.3"
+		euler="0 -15 -90"
+		mode="fixed"
+		resolution="1280 720"
+		fovy="69"
+		/>
+		
+	</worldbody>
+
+</mujoco>

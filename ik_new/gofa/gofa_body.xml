@@ -1,0 +1,61 @@
+<mujoco>
+	<frame name="robot_offset" pos="-0.125 -0.21 0">
+		<body name="robot">
+			<body name="link0">
+				<geom type="mesh" mesh="link0" rgba ="0.5 0.5 0.5 1" gap="0.01" mass="3.50083457958494"/>
+
+				<body name="link1">
+					<joint name="joint1" type="hinge" axis="0 0 1" range="0 360" limited="true" pos="0.125 0.21 0"/>
+					<geom type="mesh" mesh="link1" rgba ="0.5 0.5 0.5 1" gap="0.01" mass="2.76743491139404"/>
+
+					<body name="link2">
+						<joint name="joint2" type="hinge" axis="0 1 0" range="-90 90" limited="true" pos="0.125 0.21 0.265"/>
+						<geom type="mesh" mesh="link2" rgba ="0.5 0.5 0.5 1" gap="0.01" mass="4.28904168670464"/>
+
+						<body name="link3">
+							<joint name="joint3" type="hinge" axis="0 1 0" range="-90 90" limited="true" pos="0.125 0.21 0.71"/>
+							<geom type="mesh" mesh="link3" rgba ="0.5 0.5 0.5 1" gap="0.01" mass="3.38333107992875"/>
+
+							<body name="link4">
+								<joint name="joint4" type="hinge" axis="1 0 0" range="-90 90" limited="true" pos="0.125 0.205 0.8185"/>
+								<geom type="mesh" mesh="link4" rgba ="1 1 1 1" gap="0.01" mass="2.77857535641324"/>
+
+								<body name="link5">
+									<joint name="joint5" type="hinge" axis="0 1 0" range="-90 90" limited="true" pos="0.5959 0.205 0.8183"/>
+									<geom type="mesh" mesh="link5" rgba ="1 1 1 1" gap="0.01" mass="3.01105814739001"/>
+									<body name="realsense" pos="0.65 0.205 0.965">
+										<camera name="camera_depth" pos="0 0.015 0" euler="0 -90 -90" resolution="1280 720" fovy="69"/>
+										<camera name="camera_rgb" euler=" 0 -90 -90" resolution="1280 720" fovy="69"/>
+									</body>
+
+									<body name="link6">
+										<joint name="joint6" type="hinge" axis="1 0 0" range="-360 360" limited="true" pos="0.125 0.208 0.899"/>
+										<geom type="mesh" mesh="link6" mass="0.146500988015653"/>
+
+										<body name="gripper">
+											<geom type="mesh" mesh="gripper_body" rgba="0.1 0.1 1 1" mass="0.4"/>
+											<site  name="ee_site" pos="0.86 0.208 0.899" size="0.01" rgba="0 1 0 1"/>
+											<body>
+												<joint name="joint_finger1" type="slide" axis="0 1 0" range="-0.006 0.006" limited="true" pos="0.125 0.21 0"/>
+												<geom type="mesh" mesh="finger1" rgba="1 1 1 1" friction="1 1 1"/>
+											</body>
+
+
+											<body>
+												<joint name="joint_finger2" type="slide" axis="0 1 0" range="-0.006 0.006" limited="true" pos="0.125 0.21 0"/>
+												<geom type="mesh" mesh="finger2" rgba="1 1 1 1" friction="1 1 1"/>
+											</body>
+
+										</body>
+									</body>
+								</body>
+							</body>
+						</body>
+					</body>
+				</body>
+			</body>
+
+		</body>
+	</frame>
+
+</mujoco>
