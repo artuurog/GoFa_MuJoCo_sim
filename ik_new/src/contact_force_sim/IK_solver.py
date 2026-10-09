@@ -21,13 +21,21 @@ class LevenbergMarquardtIK:
     Works directly on the full simulation model (gripper, objects, ...):
     only the robot joints are used, i.e. the joints on the kinematic chain
     from the world to the target site (or the ones listed in 'joint_names').
-    After calculate(), their indices are available as
+    After calculate() / solve(), their indices are available as
       • self.joint_ids : joint ids
       • self.qpos_idx  : addresses in data.qpos
       • self.dof_idx   : columns of the site Jacobian / addresses in data.qvel
+
+    If 'data' is None the solver uses its own MjData, so the IK never
+    modifies the state of the simulation.
+
+    Entry points:
+      • solve()     : complete IK for a desired site pose (initial guess,
+                      random restarts, best result) -> robot joint values
+      • calculate() : a single Levenberg-Marquardt run from a given init_q
     """
 
-    def __init__(self, model, data,
+    def __init__(self, model, data=None,
                  step_size=0.5,
                  tol=0.001,
                  alpha=0.5,
@@ -39,7 +47,7 @@ class LevenbergMarquardtIK:
                  joint_names=None):
 
         self.model = model
-        self.data  = data
+        self.data  = data if data is not None else mujoco.MjData(model)
         self.step_size         = step_size
         self.tol               = tol
         self.alpha             = alpha
@@ -91,6 +99,55 @@ class LevenbergMarquardtIK:
         for j, i in zip(self.joint_ids, self.qpos_idx):
             if self.model.jnt_limited[j]:
                 q[i] = np.clip(q[i], *self.model.jnt_range[j])
+
+    # ------------------------------------------------------------------
+    def _joint_bounds(self):
+        """Lower / upper bounds of the robot joints (±pi for unlimited joints)."""
+        limited = self.model.jnt_limited[self.joint_ids].astype(bool)
+        q_lo = np.where(limited, self.model.jnt_range[self.joint_ids, 0], -np.pi)
+        q_hi = np.where(limited, self.model.jnt_range[self.joint_ids, 1],  np.pi)
+        return q_lo, q_hi
+
+    # ------------------------------------------------------------------
+    def _wrap_to_actuator_range(self, q):
+        """
+        Position actuators clamp their target to ctrlrange, which can be narrower
+        than the joint range (GoFa joint6: ±360 deg joint, ±180 deg actuator).
+        For hinge joints, shift q (robot joints) by ±2π – same pose – so that it
+        lies inside the ctrlrange of the position actuator driving the joint.
+        """
+        m = self.model
+        for k, j in enumerate(self.joint_ids):
+            if m.jnt_type[j] != mujoco.mjtJoint.mjJNT_HINGE:
+                continue
+            act = np.flatnonzero((m.actuator_trntype == mujoco.mjtTrn.mjTRN_JOINT)
+                                 & (m.actuator_trnid[:, 0] == j)
+                                 & (m.actuator_biastype == mujoco.mjtBias.mjBIAS_AFFINE)
+                                 & m.actuator_ctrllimited.astype(bool))
+            if act.size == 0:
+                continue
+            a = act[0]
+            lo, hi = np.sort(m.actuator_ctrlrange[a] / m.actuator_gear[a, 0])
+            for shift in (0.0, 2 * np.pi, -2 * np.pi):
+                q_s = q[k] + shift
+                in_joint_range = (not m.jnt_limited[j]) or \
+                                 (m.jnt_range[j, 0] <= q_s <= m.jnt_range[j, 1])
+                if lo <= q_s <= hi and in_joint_range:
+                    q[k] = q_s
+                    break
+            else:
+                print(f"[IK] WARNING: {m.joint(j).name} = {np.degrees(q[k]):.1f} deg is "
+                      f"outside the ctrlrange of actuator '{m.actuator(a).name}'")
+        return q
+
+    # ------------------------------------------------------------------
+    def pose_error(self, site_id, pos_goal, R_goal=None):
+        """Position error norm [m] and orientation error angle [rad] of the site."""
+        pos_err = np.linalg.norm(pos_goal - self.data.site(site_id).xpos)
+        if R_goal is None:
+            return pos_err, 0.0
+        rot_err = np.linalg.norm(self.rotation_error(self._get_site_rotation(site_id), R_goal))
+        return pos_err, rot_err
 
     # ------------------------------------------------------------------
     def _get_site_rotation(self, site_id):
@@ -165,7 +222,91 @@ class LevenbergMarquardtIK:
 
 
     # ------------------------------------------------------------------
-    def calculate(self, goal, init_q, body_id):
+    def solve(self, target_pos, target_rpy=None, site="ee_site",
+              init_q=None, restarts=10, seed=0, verbose=True):
+        """
+        Inverse kinematics of the robot for a desired pose of a site.
+
+        Runs calculate() from 'init_q' (default: middle of the joint ranges)
+        and, if it does not converge, again from up to 'restarts' random
+        configurations within the joint limits. The best result is kept
+        (also when no attempt converges, e.g. target out of reach).
+        Hinge angles are then shifted by ±2π, if needed, into the ctrlrange
+        of their position actuators, so the result can be used directly as
+        data.ctrl targets.
+
+        Parameters
+        ----------
+        target_pos : [x, y, z], desired site position in the world frame [m]
+        target_rpy : [roll, pitch, yaw] desired site orientation [rad], same
+                     convention as rotation_matrix_from_euler();
+                     None -> position only
+        site       : site name or id (default 'ee_site')
+        init_q     : first guess, full qpos (model.nq) or robot joints only;
+                     None -> middle of the joint ranges
+        restarts   : max number of extra attempts from random configurations
+        seed       : seed of the random restarts (reproducible results)
+        verbose    : print a summary of the result
+
+        Returns
+        -------
+        converged : bool       – True if the tolerance was reached
+        q_sol     : np.ndarray – robot joint values, ordered as self.joint_ids
+                                 (data.qpos[self.qpos_idx]); self.data holds
+                                 the full solution configuration
+        """
+        site_id = self.model.site(site).id
+        if self.joint_ids is None:
+            self._set_joints(self.chain_joints(site_id))
+
+        # ---- Goal --------------------------------------------------------
+        pos_goal = np.asarray(target_pos, dtype=float)
+        if target_rpy is None:
+            R_goal, goal = None, pos_goal
+        else:
+            R_goal = self.rotation_matrix_from_euler(*target_rpy)
+            goal   = (pos_goal, R_goal)
+
+        # ---- Attempts: init_q / mid-range, then random configurations ----
+        q_lo, q_hi = self._joint_bounds()
+        rng     = np.random.default_rng(seed)
+        q_guess = init_q if init_q is not None else 0.5 * (q_lo + q_hi)
+
+        best_err = np.inf
+        for attempt in range(restarts + 1):
+            converged, n_iter = self.calculate(goal, q_guess, site_id, verbose=False)
+
+            pos_err, rot_err = self.pose_error(site_id, pos_goal, R_goal)
+            err = np.hypot(pos_err, self.orientation_weight * rot_err)
+            if err < best_err:
+                best_err, best_qpos = err, self.data.qpos.copy()
+                best_pos_err, best_rot_err = pos_err, rot_err
+
+            if converged:
+                break
+            q_guess = rng.uniform(q_lo, q_hi)
+
+        # ---- Best solution, expressed inside the actuator ranges ----------
+        self.data.qpos[:] = best_qpos
+        q_sol = self._wrap_to_actuator_range(self.data.qpos[self.qpos_idx].copy())
+        self.data.qpos[self.qpos_idx] = q_sol
+        mujoco.mj_forward(self.model, self.data)
+
+        if verbose:
+            print(f"[IK] converged: {converged}  |  attempts: {attempt + 1}  |  "
+                  f"iterations (last): {n_iter}")
+            print(f"[IK]   joints   [deg] => {np.round(np.degrees(q_sol), 2)}")
+            print(f"[IK]   position error  => {best_pos_err * 1000:.2f} mm")
+            if R_goal is not None:
+                print(f"[IK]   rotation error  => {np.degrees(best_rot_err):.2f} deg")
+            if not converged:
+                print("[IK]   WARNING: target not reached (out of workspace / joint "
+                      "limits?). Returning the closest configuration found.")
+
+        return converged, q_sol
+
+    # ------------------------------------------------------------------
+    def calculate(self, goal, init_q, body_id, verbose=True):
         """
         Run the IK solver.
 
@@ -176,6 +317,7 @@ class LevenbergMarquardtIK:
         init_q   : array-like, initial configuration: either the full qpos
                    (length model.nq) or the robot joints only (length len(qpos_idx))
         body_id  : int, site id (use model.site('ee_site').id)
+        verbose  : print a warning if max_iter is reached
 
         Returns
         -------
@@ -226,8 +368,9 @@ class LevenbergMarquardtIK:
 
         while np.linalg.norm(error) >= self.tol:
             if n_iter >= self.max_iter:
-                print(f"[IK] WARNING: max iterations ({self.max_iter}) reached. "
-                      f"Residual error = {np.linalg.norm(error):.6f}")
+                if verbose:
+                    print(f"[IK] WARNING: max iterations ({self.max_iter}) reached. "
+                          f"Residual error = {np.linalg.norm(error):.6f}")
                 break
 
             # ---- Compute Jacobians ---------------------------------------
