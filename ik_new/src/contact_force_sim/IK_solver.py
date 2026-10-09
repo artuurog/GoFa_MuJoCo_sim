@@ -17,6 +17,14 @@ class LevenbergMarquardtIK:
     Goal for full pose      : (np.array([x, y, z]), R_goal_3x3)
                                where R_goal_3x3 is a 3×3 rotation matrix.
                                Helper rotation_matrix_from_euler() is provided.
+
+    Works directly on the full simulation model (gripper, objects, ...):
+    only the robot joints are used, i.e. the joints on the kinematic chain
+    from the world to the target site (or the ones listed in 'joint_names').
+    After calculate(), their indices are available as
+      • self.joint_ids : joint ids
+      • self.qpos_idx  : addresses in data.qpos
+      • self.dof_idx   : columns of the site Jacobian / addresses in data.qvel
     """
 
     def __init__(self, model, data,
@@ -27,7 +35,8 @@ class LevenbergMarquardtIK:
                  jacr=None,
                  damping=0.01,
                  orientation_weight=1.0,
-                 max_iter=1000):
+                 max_iter=1000,
+                 joint_names=None):
 
         self.model = model
         self.data  = data
@@ -43,12 +52,45 @@ class LevenbergMarquardtIK:
         self.jacp = jacp if jacp is not None else np.zeros((3, nv))
         self.jacr = jacr if jacr is not None else np.zeros((3, nv))
 
+        # Robot joints: given explicitly, or found from the site in calculate()
+        self.joint_ids = None
+        if joint_names is not None:
+            self._set_joints([model.joint(name).id for name in joint_names])
+
+    # ------------------------------------------------------------------
+    def _set_joints(self, joint_ids):
+        """Store the robot joint ids and their qpos / dof addresses."""
+        joint_ids = np.asarray(joint_ids, dtype=int)
+        one_dof = (mujoco.mjtJoint.mjJNT_HINGE, mujoco.mjtJoint.mjJNT_SLIDE)
+        for j in joint_ids:
+            if self.model.jnt_type[j] not in one_dof:
+                raise ValueError(f"[IK] joint '{self.model.joint(j).name}' is not "
+                                 f"a hinge/slide joint")
+        self.joint_ids = joint_ids
+        self.qpos_idx  = self.model.jnt_qposadr[joint_ids]
+        self.dof_idx   = self.model.jnt_dofadr[joint_ids]
+
+    # ------------------------------------------------------------------
+    def chain_joints(self, site_id):
+        """
+        Joint ids on the kinematic chain from the world to the site, base first.
+        Joints that do not move the site (fingers, free objects, ...) are excluded.
+        """
+        joints = []
+        body = self.model.site_bodyid[site_id]
+        while body != 0:
+            adr = self.model.body_jntadr[body]
+            num = self.model.body_jntnum[body]
+            joints = list(range(adr, adr + num)) + joints
+            body = self.model.body_parentid[body]
+        return joints
+
     # ------------------------------------------------------------------
     def check_joint_limits(self, q):
-        """Clamp joint angles to their model limits."""
-        for i in range(len(q)):
-            q[i] = max(self.model.jnt_range[i][0],
-                       min(q[i], self.model.jnt_range[i][1]))
+        """Clamp the robot joint values (entries self.qpos_idx of q) to their model limits."""
+        for j, i in zip(self.joint_ids, self.qpos_idx):
+            if self.model.jnt_limited[j]:
+                q[i] = np.clip(q[i], *self.model.jnt_range[j])
 
     # ------------------------------------------------------------------
     def _get_site_rotation(self, site_id):
@@ -106,19 +148,19 @@ class LevenbergMarquardtIK:
         """
         Compute the orientation error as an axis-angle vector (3D).
 
-        Uses the formula:  e_R = 0.5 * (R_goal - R_current)^skew_extract
-        i.e., the 'vee' of the skew-symmetric part of  R_goal @ R_current.T
+        e_R = axis * angle of the relative rotation  R_goal @ R_current.T
+        (shortest rotation, angle in [0, pi]). Unlike the 'vee' of its
+        skew-symmetric part, which is axis * sin(angle), it does not
+        vanish for large errors close to 180 deg.
 
-        Returns a 3-vector in the body frame that drives R_current -> R_goal.
+        Returns a 3-vector in the world frame (same frame as jacr) that
+        drives R_current -> R_goal.
         """
         R_err = R_goal @ R_current.T          # relative rotation matrix
-        # Extract the axis-angle vector from the skew-symmetric part
-        # rot_vec = [R32-R23, R13-R31, R21-R12] / 2
-        e_R = 0.5 * np.array([
-            R_err[2, 1] - R_err[1, 2],
-            R_err[0, 2] - R_err[2, 0],
-            R_err[1, 0] - R_err[0, 1]
-        ])
+        quat = np.zeros(4)
+        mujoco.mju_mat2Quat(quat, R_err.flatten())
+        e_R = np.zeros(3)
+        mujoco.mju_quat2Vel(e_R, quat, 1.0)   # axis * angle
         return e_R
 
 
@@ -131,7 +173,8 @@ class LevenbergMarquardtIK:
         ----------
         goal     : array-like [x,y,z]          (position-only mode)
                    or tuple  ([x,y,z], R_3x3)  (full-pose mode)
-        init_q   : array-like, initial joint configuration
+        init_q   : array-like, initial configuration: either the full qpos
+                   (length model.nq) or the robot joints only (length len(qpos_idx))
         body_id  : int, site id (use model.site('ee_site').id)
 
         Returns
@@ -151,8 +194,20 @@ class LevenbergMarquardtIK:
             R_goal   = None
             use_orientation = False
 
+        # ---- Robot joints ------------------------------------------------
+        if self.joint_ids is None:
+            self._set_joints(self.chain_joints(body_id))
+
         # ---- Initialise --------------------------------------------------
-        self.data.qpos[:] = init_q
+        init_q = np.asarray(init_q, dtype=float)
+        if init_q.size == self.model.nq:
+            self.data.qpos[:] = init_q
+        elif init_q.size == len(self.qpos_idx):
+            self.data.qpos[self.qpos_idx] = init_q
+        else:
+            raise ValueError(f"[IK] init_q has {init_q.size} entries, expected "
+                             f"{self.model.nq} (nq) or {len(self.qpos_idx)} (robot joints)")
+        self.check_joint_limits(self.data.qpos)
         mujoco.mj_forward(self.model, self.data)
 
         # ---- Build the combined error vector -----------------------------
@@ -180,17 +235,20 @@ class LevenbergMarquardtIK:
                                self.jacp, self.jacr, body_id)
 
             # ---- Build the task-space Jacobian J -------------------------
+            # Keep only the columns of the robot dofs (n = number of robot joints)
+            jacp = self.jacp[:, self.dof_idx]
+            jacr = self.jacr[:, self.dof_idx]
             if use_orientation:
-                # Stack translational (3×nv) and rotational (3×nv) parts → (6×nv)
-                J = np.vstack([self.jacp,
-                               self.orientation_weight * self.jacr])
+                # Stack translational (3×n) and rotational (3×n) parts → (6×n)
+                J = np.vstack([jacp,
+                               self.orientation_weight * jacr])
             else:
-                J = self.jacp   # (3×nv)
+                J = jacp   # (3×n)
 
             # ---- Levenberg-Marquardt pseudo-inverse ----------------------
             n = J.shape[1]
             I = np.eye(n)
-            A = J.T @ J + self.damping * I   # (nv×nv)  – always well-conditioned
+            A = J.T @ J + self.damping * I   # (n×n)  – always well-conditioned
 
             if np.isclose(np.linalg.det(A), 0):
                 j_inv = np.linalg.pinv(A) @ J.T
@@ -200,7 +258,7 @@ class LevenbergMarquardtIK:
             delta_q = j_inv @ error
 
             # ---- Update joint angles -------------------------------------
-            self.data.qpos[:] += self.step_size * delta_q
+            self.data.qpos[self.qpos_idx] += self.step_size * delta_q
             self.check_joint_limits(self.data.qpos)
 
             # ---- Forward kinematics & new error --------------------------
