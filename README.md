@@ -1,4 +1,4 @@
-# GoFa_MuJoCo_sim
+# Setup Mujoco simulations with the ABB CRB15000 GoFa
 MuJoCo simulation environment with an ABB GoFa robot for tabletop manipulation tasks.
 
 ## Repo structure
