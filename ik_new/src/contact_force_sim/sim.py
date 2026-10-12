@@ -21,7 +21,7 @@ data = mujoco.MjData(model)
 # Initial pose
 if Q_INIT is not None:
     data.qpos[:len(Q_INIT)] = Q_INIT
-elif model.nkey > 0:
+elif model.nkey > 0: 
     mujoco.mj_resetDataKeyframe(model, data, 0)
 
 data.qvel[:] = 0.0

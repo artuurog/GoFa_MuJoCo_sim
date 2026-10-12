@@ -18,6 +18,7 @@ MuJoCo simulation environment with an ABB GoFa robot for tabletop manipulation t
 
 SDF is a Mujoco plugin that allows to generate custom geometries defined as signed distance fields.
 In order to use the tube_plugin.dll:
+1. Clone the (official Mujoco repo)[https://github.com/google-deepmind/mujoco]
 1. Find the folder of Mujoco's simulate.exe
 2. In the same folder, create folder mujoco_plugin/
 3. Paste tube_plugin.dll in mujoco_plugin/
