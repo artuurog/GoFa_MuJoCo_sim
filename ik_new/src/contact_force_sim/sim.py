@@ -5,7 +5,7 @@ import mujoco.viewer
 from IK_solver import LevenbergMarquardtIK
 
 # ---------------- user settings ----------------
-MODEL_PATH = r"ik_new\gofa\gofa.xml"
+MODEL_PATH = r"ik_new\gofa\gofa.xml"  # path to the MuJoCo model
 Q_INIT = None
 
 TARGET_POS     = [-0.5, 0.2, 0.2]     # desired ee_site position, world frame [m]
