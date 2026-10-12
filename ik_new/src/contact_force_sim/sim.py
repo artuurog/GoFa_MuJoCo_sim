@@ -8,7 +8,7 @@ from IK_solver import LevenbergMarquardtIK
 MODEL_PATH = r"ik_new\gofa\gofa.xml"
 Q_INIT = None
 
-TARGET_POS     = [0.5, 0.2, 0.3]     # desired ee_site position, world frame [m]
+TARGET_POS     = [-0.5, 0.2, 0.2]     # desired ee_site position, world frame [m]
 TARGET_RPY_DEG = [0.0, 90.0, 0.0]    # desired ee_site orientation: roll, pitch, yaw [deg]
                                      # R = Rx(roll) @ Ry(pitch) @ Rz(yaw)  (rotation_matrix_from_euler)
 MOVE_TIME   = 3.0                    # duration of the motion to the IK solution [s]
