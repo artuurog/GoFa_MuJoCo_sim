@@ -175,31 +175,6 @@ class LevenbergMarquardtIK:
         return Rx @ Ry @ Rz
     
 
-    # def rotation_matrix_from_euler(self, roll, pitch, yaw, seq="zyx"):
-    #     """
-
-    #     Parameters
-    #     ----------
-    #     roll, pitch, yaw: euler angles in rad
-    #     seq : The default is "zyx".
-
-    #     Returns
-    #     -------
-    #     Rotation matrix
-
-    #     """
-        
-    #     quat = np.zeros(4)
-    #     euler = np.array([roll, pitch, yaw])
-        
-    #     mujoco.mju_euler2Quat(quat, euler, seq)
-        
-    #     mat = np.zeros(9)
-    #     mujoco.mju_quat2Mat(mat, quat)
-        
-    #     return mat.reshape(3, 3)
-    
-
     # ------------------------------------------------------------------
     def rotation_error(self, R_current, R_goal):
         """
