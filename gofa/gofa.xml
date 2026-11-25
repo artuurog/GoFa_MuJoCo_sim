@@ -49,6 +49,7 @@
 										<body name="gripper">
 											<geom type="mesh" mesh="gripper_body" rgba="0.1 0.1 1 1" mass="0.4"/>
 											<site  name="ee_site" pos="0.86 0.208 0.899" size="0.01" rgba="0 1 0 1"/>
+											<site  name="ee_site_axis" pos="0.86 0.208 0.949" size="0.005" rgba="0 0 0 0"/>
 											<body>
 												<joint name="joint_finger1" type="slide" axis="0 1 0" range="-0.006 0.006" limited="true" pos="0.125 0.21 0"/>
 												<geom type="mesh" mesh="finger1" rgba="1 1 1 1" friction="1 1 1"/>
