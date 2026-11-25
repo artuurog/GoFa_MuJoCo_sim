@@ -86,13 +86,17 @@
 		  texrepeat="5 5" reflectance="0.2"/>
 	</asset>
 
-	<include file="assets/gofa_asset.xml"/>
+	<!-- Same as in gofa.xml: masses/inertias are computed from the geoms -->
+	<compiler inertiafromgeom="true"/>
+
+	<asset>
+		<model name="gofa" file="../gofa/gofa.xml"/>
+	</asset>
 
 	<worldbody>
-		<body pos="0 0 0.6">
-			<include file="assets/gofa_body.xml"/>
-		</body>
-
+		<frame pos="0 0 0.6">
+			<attach model="gofa" body="robot" prefix=""/>
+		</frame>
 	</worldbody>
 
 	<worldbody>

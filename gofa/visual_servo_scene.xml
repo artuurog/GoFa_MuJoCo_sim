@@ -1,7 +1,5 @@
 <mujoco model="pick and place scene">
 
-	<compiler meshdir="assets" inertiafromgeom="true"/>
-
 	<option gravity="0 0 -9.81" />
 
 	<!--<statistic center="0.3 0 0.4" extent="1"/>-->
@@ -20,12 +18,14 @@
 		<material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
 	</asset>
 
-	<include file="gofa_asset.xml"/>
-	
+	<asset>
+		<model name="gofa" file="gofa.xml"/>
+	</asset>
+
 	<worldbody>
-		<body pos="0 0 0">
-			<include file="gofa_body.xml"/>
-		</body>
+		<frame pos="0 0 0">
+			<attach model="gofa" body="robot" prefix=""/>
+		</frame>
 	</worldbody>
 	
 	<worldbody>
