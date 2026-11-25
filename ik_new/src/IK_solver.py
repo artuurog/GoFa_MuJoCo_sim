@@ -112,7 +112,7 @@ class LevenbergMarquardtIK:
     def _wrap_to_actuator_range(self, q):
         """
         Position actuators clamp their target to ctrlrange, which can be narrower
-        than the joint range (GoFa joint6: ±360 deg joint, ±180 deg actuator).
+        than the joint range.
         For hinge joints, shift q (robot joints) by ±2π – same pose – so that it
         lies inside the ctrlrange of the position actuator driving the joint.
         """

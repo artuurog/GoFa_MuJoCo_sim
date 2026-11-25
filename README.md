@@ -8,14 +8,13 @@ GoFa_MuJoCo_sim/
 ├── gofa/                     # robot model (gofa.xml), meshes and pick-and-place scenes
 ├── gofa_contact_force/       # peg-in-hole / insertion scenes with contact-force sensing
 ├── ik_new/                   # Python inverse kinematics + simulation
-│   ├── gofa/                 # self-contained copy of the robot model used by the IK scripts
 │   └── src/
 │       ├── IK_solver.py
 │       └── sim.py
 └── README.md
 ```
 
-All scenes load the robot from `gofa/gofa.xml` with MuJoCo's `<attach>` (requires MuJoCo >= 3.2), so there is a single robot model to maintain.
+`gofa/gofa.xml` is the only robot model: the scenes load it with MuJoCo's `<attach>` (requires MuJoCo >= 3.2) and the IK code loads it directly.
 
 ### `gofa/`
 - `gofa.xml` and `assets/mesh/`: the robot model (with gripper, joint ranges and max speeds from the GoFa 5 datasheet) and its STL meshes
@@ -32,9 +31,8 @@ Peg-in-hole insertion tasks in which joint torques and end-effector contact forc
 
 ### `ik_new/`
 Inverse kinematics for the GoFa, applied to the simulation.
-- `gofa/`: copy of `gofa/gofa.xml` and its meshes, so the IK scripts are self-contained. Keep it in sync with `gofa/gofa.xml`
 - `src/IK_solver.py`: `LevenbergMarquardtIK`, a Levenberg-Marquardt IK solver for position-only or full 6-DOF pose targets. It works directly on the simulation model, uses only the joints on the chain to the target site (default `ee_site`), respects joint limits, and supports random restarts. The convention for orientation targets is `R = Rx(roll) @ Ry(pitch) @ Rz(yaw)`
-- `src/sim.py`: loads `ik_new/gofa/gofa.xml`, solves IK for a target pose (`TARGET_POS`, `TARGET_RPY_DEG`, set at the top of the file), and moves the robot to the solution with a smooth joint-space interpolation in the MuJoCo viewer. Run it from the repo root:
+- `src/sim.py`: loads `gofa/gofa.xml`, solves IK for a target pose (`TARGET_POS`, `TARGET_RPY_DEG`, set at the top of the file), and moves the robot to the solution with a smooth joint-space interpolation in the MuJoCo viewer. Run it from the repo root:
   ```
   python ik_new/src/sim.py
   ```
