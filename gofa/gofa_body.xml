@@ -5,7 +5,7 @@
 				<geom type="mesh" mesh="link0" rgba ="0.5 0.5 0.5 1" gap="0.01" mass="3.50083457958494"/>
 
 				<body name="link1">
-					<joint name="joint1" type="hinge" axis="0 0 1" range="0 360" limited="true" pos="0.125 0.21 0"/>
+					<joint name="joint1" type="hinge" axis="0 0 1" range="-180 180" limited="true" pos="0.125 0.21 0"/>
 					<geom type="mesh" mesh="link1" rgba ="0.5 0.5 0.5 1" gap="0.01" mass="2.76743491139404"/>
 
 					<body name="link2">
